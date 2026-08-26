@@ -1,5 +1,8 @@
+/* The inline bootstrap script in index.html sets data-theme on <html>
+   before paint (stored choice, else prefers-color-scheme), so the dark
+   palette keys off the attribute rather than a media query. */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #fafaf8;
   --surface: #ffffff;
   --text: #1c1e21;
@@ -14,21 +17,20 @@
   --bad: #b3261e;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181c;
-    --surface: #1e2126;
-    --text: #e6e7ea;
-    --muted: #9aa1ab;
-    --border: #32363d;
-    --accent: #6fa8e8;
-    --warn-bg: #3a2d10;
-    --warn-text: #eec06a;
-    --differs-bg: #2a2617;
-    --badge-bg: #2a2e35;
-    --ok: #58c48a;
-    --bad: #ef8a84;
-  }
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #16181c;
+  --surface: #1e2126;
+  --text: #e6e7ea;
+  --muted: #9aa1ab;
+  --border: #32363d;
+  --accent: #6fa8e8;
+  --warn-bg: #3a2d10;
+  --warn-text: #eec06a;
+  --differs-bg: #2a2617;
+  --badge-bg: #2a2e35;
+  --ok: #58c48a;
+  --bad: #ef8a84;
 }
 
 * {
@@ -82,6 +84,27 @@ body {
 .topbar nav a.active {
   color: var(--accent);
   font-weight: 600;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  align-self: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 a {

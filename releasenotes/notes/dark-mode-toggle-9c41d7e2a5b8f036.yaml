@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The web dashboard now has a manual dark mode toggle in the top bar. The
+    choice is persisted in the browser's localStorage; on first visit the
+    theme follows the OS ``prefers-color-scheme`` setting, resolved before
+    first paint to avoid a flash of the wrong theme.
