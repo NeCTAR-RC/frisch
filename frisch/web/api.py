@@ -16,10 +16,12 @@ def build_router() -> APIRouter:
     router = APIRouter(prefix="/api/v1")
 
     @router.get("/matrix")
-    def matrix(request: Request):
+    def matrix(request: Request, instance: str | None = None):
         with _session(request) as session:
             return queries.matrix(
-                session, request.app.state.config.environments
+                session,
+                request.app.state.config.environments,
+                instance=instance,
             )
 
     @router.get("/services")

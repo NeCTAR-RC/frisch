@@ -104,6 +104,41 @@ def test_matrix_mixed_instances(session):
     assert prod["instances"] == 2
 
 
+def test_matrix_instance_filter(session):
+    seed(
+        session,
+        {
+            "prod": [
+                obs("prod", "keystone", "2.2.1", "p1"),
+                obs(
+                    "prod",
+                    "prometheus",
+                    "3.1.0",
+                    "p2",
+                    stem="prometheus-capi",
+                    instance="capi",
+                ),
+                obs("prod", "prometheus", "3.0.0", "p3"),
+            ]
+        },
+    )
+    data = queries.matrix(session, ENVS)
+    assert data["instances"] == ["capi"]
+    # Unfiltered, prometheus aggregates both instances.
+    assert row(data, "prometheus")["environments"]["prod"]["instances"] == 2
+
+    capi = queries.matrix(session, ENVS, instance="capi")
+    # The instance list is unfiltered so the UI keeps its choices.
+    assert capi["instances"] == ["capi"]
+    assert [r["service"] for r in capi["rows"]] == ["prometheus"]
+    prod = row(capi, "prometheus")["environments"]["prod"]
+    assert prod["version"] == "3.1.0"
+    assert prod["mixed"] is False
+    assert prod["instances"] == 1
+
+    assert queries.matrix(session, ENVS, instance="nope")["rows"] == []
+
+
 def test_matrix_hides_service_removed_everywhere(session):
     seed(
         session,

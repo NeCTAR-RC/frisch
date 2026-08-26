@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The matrix can now be filtered to a single fan-out or cluster instance
+    (for example ``capi``), via ``GET /api/v1/matrix?instance=<name>`` and a
+    dropdown in the dashboard toolbar. The filter is applied before the
+    per-environment aggregation, so version and mixed cells reflect only the
+    selected instance. The selection is kept in the page URL so a filtered
+    view can be bookmarked and shared.

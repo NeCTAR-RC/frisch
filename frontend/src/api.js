@@ -6,7 +6,11 @@ async function get(path) {
   return resp.json()
 }
 
-export const fetchMatrix = () => get('/api/v1/matrix')
+export const fetchMatrix = (instance) =>
+  get(
+    '/api/v1/matrix' +
+      (instance ? `?instance=${encodeURIComponent(instance)}` : ''),
+  )
 export const fetchService = (name) =>
   get(`/api/v1/services/${encodeURIComponent(name)}`)
 export const fetchHistory = (name, env) =>

@@ -127,12 +127,16 @@ h2 {
   margin-bottom: 0.75rem;
 }
 
-.toolbar input[type='search'] {
+.toolbar input[type='search'],
+.toolbar select {
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
   color: var(--text);
+}
+
+.toolbar input[type='search'] {
   min-width: 16rem;
 }
 

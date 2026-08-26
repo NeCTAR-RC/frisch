@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { fetchMatrix, fetchStatus } from '../api.js'
 import { lagDays, shortDate } from '../format.js'
 
@@ -71,11 +71,26 @@ export default function Matrix() {
   const [filter, setFilter] = useState('')
   const [onlyDiffering, setOnlyDiffering] = useState(false)
   const [sort, setSort] = useState({ key: 'service', dir: 1 })
+  // Instance filter lives in the URL so a view like ?instance=capi can be
+  // bookmarked and shared. Filtering happens server-side, before the
+  // per-environment aggregation, so mixed/version cells stay correct.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const instance = searchParams.get('instance') || ''
 
   useEffect(() => {
-    fetchMatrix().then(setData).catch(setError)
+    fetchMatrix(instance).then(setData).catch(setError)
+  }, [instance])
+
+  useEffect(() => {
     fetchStatus().then(setStatus).catch(() => {})
   }, [])
+
+  const onInstance = (value) => {
+    const params = new URLSearchParams(searchParams)
+    if (value) params.set('instance', value)
+    else params.delete('instance')
+    setSearchParams(params)
+  }
 
   const onSort = (key) =>
     setSort((s) =>
@@ -141,6 +156,20 @@ export default function Matrix() {
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        {(data.instances || []).length > 0 && (
+          <select
+            aria-label="Filter by instance"
+            value={instance}
+            onChange={(e) => onInstance(e.target.value)}
+          >
+            <option value="">all instances</option>
+            {data.instances.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
         <label className="check">
           <input
             type="checkbox"

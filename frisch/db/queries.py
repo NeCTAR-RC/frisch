@@ -65,7 +65,11 @@ def _aggregate_env(instances: list[Instance]) -> dict | None:
     }
 
 
-def matrix(session: Session, environments: list[str]) -> dict:
+def matrix(
+    session: Session,
+    environments: list[str],
+    instance: str | None = None,
+) -> dict:
     services = (
         session.scalars(
             select(Service)
@@ -75,10 +79,26 @@ def matrix(session: Session, environments: list[str]) -> dict:
         .unique()
         .all()
     )
+    # Every fan-out/cluster instance name with a live deployment, so the UI
+    # can offer the filter choices even while one is selected.
+    instances = sorted(
+        session.scalars(
+            select(Instance.instance)
+            .where(
+                Instance.component == model.PRIMARY,
+                Instance.instance.is_not(None),
+                Instance.active,
+            )
+            .distinct()
+        ).all()
+    )
     rows = []
     for service in services:
         primaries = [
-            i for i in service.instances if i.component == model.PRIMARY
+            i
+            for i in service.instances
+            if i.component == model.PRIMARY
+            and (instance is None or i.instance == instance)
         ]
         for source in sorted({i.source for i in primaries}):
             by_env = {}
@@ -118,7 +138,11 @@ def matrix(session: Session, environments: list[str]) -> dict:
                     "differs": differs,
                 }
             )
-    return {"environments": environments, "rows": rows}
+    return {
+        "environments": environments,
+        "instances": instances,
+        "rows": rows,
+    }
 
 
 def _instance_dict(inst: Instance) -> dict:

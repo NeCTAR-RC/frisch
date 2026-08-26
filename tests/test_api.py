@@ -64,6 +64,12 @@ def test_matrix_endpoint(client):
     assert keystone["differs"] is True
 
 
+def test_matrix_instance_filter(client):
+    data = client.get("/api/v1/matrix?instance=capi").json()
+    assert data["rows"] == []
+    assert client.get("/api/v1/matrix").json()["instances"] == []
+
+
 def test_services_endpoints(client):
     assert client.get("/api/v1/services").json() == {"services": ["keystone"]}
     detail = client.get("/api/v1/services/keystone").json()
