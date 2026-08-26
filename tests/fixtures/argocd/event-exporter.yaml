@@ -1,0 +1,21 @@
+# Trimmed: chart pin plus an image tag override in helm values that is the
+# meaningful version (opt-in via values_version_paths).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubernetes-event-exporter
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: kubernetes-event-exporter
+    targetRevision: 3.6.3
+    helm:
+      values: |
+        image:
+          registry: registry.k8s.io
+          repository: event-exporter
+          tag: v1.7

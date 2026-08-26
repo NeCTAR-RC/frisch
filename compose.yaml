@@ -1,0 +1,60 @@
+# Local dev / demo: MariaDB + web + a looping collector -- the docker-compose
+# analogue of the k8s web Deployment + collector CronJob + MariaDB cluster.
+#
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# The collector reads the repos configured in etc/frisch.yaml.sample; for a
+# local demo, bind-mount your checkouts and point a config copy at them, e.g.
+# uncomment the volumes below and set the repo urls to /repos/<name>.
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_DATABASE: frisch
+      MARIADB_USER: frisch
+      MARIADB_PASSWORD: frisch
+      MARIADB_RANDOM_ROOT_PASSWORD: '1'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: .
+      args:
+        VERSION: '${VERSION:-0.0.0}'
+    command: ['frisch-web', '--host', '0.0.0.0', '--port', '8080']
+    environment: &env
+      FRISCH_CONFIG: /etc/frisch/frisch.yaml
+      FRISCH_DATABASE_URL: mysql+pymysql://frisch:frisch@db/frisch?charset=utf8mb4
+    volumes:
+      - ./etc/frisch.yaml.sample:/etc/frisch/frisch.yaml:ro
+      # - ~/src/argo-apps-test:/repos/argo-apps-test:ro
+      # - ~/src/argo-apps-prod:/repos/argo-apps-prod:ro
+    ports:
+      - '8080:8080'
+    depends_on:
+      db:
+        condition: service_healthy
+
+  collector:
+    build:
+      context: .
+      args:
+        VERSION: '${VERSION:-0.0.0}'
+    command: ['frisch-collect', '--interval', '300']
+    environment: *env
+    volumes:
+      - ./etc/frisch.yaml.sample:/etc/frisch/frisch.yaml:ro
+      - git-cache:/var/cache/frisch/git
+      # - ~/src/argo-apps-test:/repos/argo-apps-test:ro
+      # - ~/src/argo-apps-prod:/repos/argo-apps-prod:ro
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  git-cache:

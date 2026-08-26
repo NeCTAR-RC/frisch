@@ -1,0 +1,263 @@
+:root {
+  color-scheme: light dark;
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --text: #1c1e21;
+  --muted: #6b7280;
+  --border: #e3e4e8;
+  --accent: #175caa;
+  --warn-bg: #fff4e0;
+  --warn-text: #8a5300;
+  --differs-bg: #fdf6e5;
+  --badge-bg: #eef0f3;
+  --ok: #1a7f4b;
+  --bad: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --surface: #1e2126;
+    --text: #e6e7ea;
+    --muted: #9aa1ab;
+    --border: #32363d;
+    --accent: #6fa8e8;
+    --warn-bg: #3a2d10;
+    --warn-text: #eec06a;
+    --differs-bg: #2a2617;
+    --badge-bg: #2a2e35;
+    --ok: #58c48a;
+    --bad: #ef8a84;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    15px/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem 3rem;
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+
+.brand {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.topbar nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.topbar nav a.active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+a {
+  color: var(--accent);
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin-top: 2rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.toolbar input[type='search'] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 16rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/* Sortable column headers: styled as the header text, click to sort. */
+th button.sort {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+
+th button.sort:hover {
+  color: var(--accent);
+}
+
+th .arrow {
+  margin-left: 0.25rem;
+  font-size: 0.65rem;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tr.differs {
+  background: var(--differs-bg);
+}
+
+tr.inactive {
+  opacity: 0.55;
+}
+
+.mono {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+/* Long version strings (kolla tags) truncate rather than widening the
+   matrix; the full value is in the title tooltip and on the detail page. */
+.cell .version {
+  display: inline-block;
+  max-width: 17rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.cell.empty,
+.cell.removed {
+  color: var(--muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  margin-left: 0.4rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  background: var(--badge-bg);
+  color: var(--muted);
+  vertical-align: middle;
+}
+
+.badge.source {
+  margin-left: 0;
+}
+
+.badge.lag,
+.badge.mixed {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  font-weight: 600;
+}
+
+.badge.status.success {
+  color: var(--ok);
+}
+
+.badge.status.error,
+.badge.status.unavailable {
+  background: var(--warn-bg);
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.banner {
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.banner.warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.error {
+  color: var(--bad);
+}
+
+.crumbs {
+  margin: 0 0 0.5rem;
+}

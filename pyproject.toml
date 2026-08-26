@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "frisch"
+# Version is derived from the git tag at build time by setuptools-scm; see
+# [tool.setuptools_scm] below. Listed in `dynamic` so it is not set statically.
+dynamic = ["version"]
+description = "Deployment version visibility dashboard for the Nectar Research Cloud"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "ARDC Nectar Core Services" }]
+dependencies = [
+    "httpx>=0.24",
+    "PyYAML>=6",
+    "SQLAlchemy>=2",
+    "alembic>=1.13",
+    "PyMySQL>=1.1",
+    "cliff>=4",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "prometheus-client>=0.19",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7", "pytest-cov>=4", "respx>=0.20"]
+
+[project.scripts]
+frisch = "frisch.cli.main:main"
+frisch-web = "frisch.web.app:main"
+frisch-collect = "frisch.collect:main"
+
+# cliff discovers commands from this entry-point namespace. Underscores in the
+# entry-point name become spaces in the command (db_upgrade -> "db upgrade").
+[project.entry-points."frisch.cli"]
+collect = "frisch.cli.commands:Collect"
+backfill = "frisch.cli.commands:Backfill"
+db_upgrade = "frisch.cli.commands:DbUpgrade"
+show_matrix = "frisch.cli.commands:ShowMatrix"
+show_status = "frisch.cli.commands:ShowStatus"
+
+[tool.setuptools_scm]
+# No options needed: derive the version from the git tag (e.g. 0.1.0) of the
+# checked-out commit. Untagged builds get a dev version like 0.1.1.devN+g<sha>.
+
+[tool.setuptools.packages.find]
+include = ["frisch*"]
+
+[tool.coverage.report]
+# Keep the default "# pragma: no cover" behaviour and also drop unreachable __main__ glue.
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
+
+[tool.ruff]
+line-length = 79
+# see https://github.com/astral-sh/ruff/issues/4560
+ignore = ["E712"]
+
+[tool.ruff.format]
+quote-style = "preserve"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "U"]

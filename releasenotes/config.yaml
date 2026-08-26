@@ -1,0 +1,4 @@
+---
+# reno configuration for frisch
+collapse_pre_releases: true
+unreleased_version_title: Unreleased

@@ -1,0 +1,18 @@
+*.py[cod]
+__pycache__/
+*.egg-info/
+.eggs/
+build/
+dist/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+cover/
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+
+# Local dev state: sqlite db and git mirror cache produced by frisch-collect.
+/.dev/

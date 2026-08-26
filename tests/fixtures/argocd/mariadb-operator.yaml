@@ -1,0 +1,26 @@
+# Trimmed from the prod apps repo (apps-main/mariadb-operator.yaml): the
+# multi-source (spec.sources) shape.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mariadb-operator
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    name: userhubs
+    namespace: mariadb-operator
+  sources:
+    - repoURL: registry-1.docker.io/mariadbcommunity
+      chart: mariadb-operator-crds
+      targetRevision: 26.6.0
+    - repoURL: registry-1.docker.io/mariadbcommunity
+      chart: mariadb-operator
+      targetRevision: 26.6.0
+      helm:
+        values: |
+          ha:
+            enabled: false
+  syncPolicy:
+    automated:
+      prune: true

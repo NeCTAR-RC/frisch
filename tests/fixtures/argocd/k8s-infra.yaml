@@ -1,0 +1,18 @@
+# Trimmed HEAD-tracking git app: no version to display, floating.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8s-infra
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: git@git.example.org:ops/cluster-infra.git
+    targetRevision: HEAD
+    path: clusters/test-main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

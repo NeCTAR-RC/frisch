@@ -1,0 +1,104 @@
+# frisch configuration.
+#
+# Layering: environment variables (FRISCH_*) > this file > built-in defaults.
+# Secrets (PuppetDB tokens, DB passwords) never belong in this file; supply them
+# via the environment (FRISCH_DATABASE_URL, FRISCH_PUPPETDB_TOKEN_<ENV>) or via
+# *_file keys pointing at mounted secrets.
+
+# SQLAlchemy database URL. SQLite for dev; MariaDB in deployments, e.g.
+#   mysql+pymysql://frisch:<password>@dbhost/frisch?charset=utf8mb4
+database:
+  url: sqlite:///.dev/frisch.db
+
+# Bare mirror clones of the source repos are kept here (FRISCH_GIT_CACHE_DIR
+# overrides; the container sets /var/cache/frisch/git, the PVC mount).
+git_cache_dir: .dev/git
+
+# Environments frisch tracks, in display order.
+environments: [test, prod]
+
+collectors:
+  argocd:
+    repos:
+      # url may be an ssh/https remote or a local path (dev: point at your
+      # existing checkouts). branch defaults to master.
+      test:
+        url: git@git.example.org:ops/argo-apps-test.git
+      prod:
+        url: git@git.example.org:ops/argo-apps-prod.git
+    # Directories containing Application CRDs. 'apps' is the historical
+    # pre-rename path so backfill keeps continuity across the apps/ ->
+    # apps-main/ move.
+    watched_dirs: [apps-main, apps-capi, apps]
+    cluster_by_dir:
+      apps-main: main
+      apps-capi: capi
+      apps: main
+    # Apps on the default cluster get no instance suffix; apps on any other
+    # cluster get the cluster name as their instance.
+    default_cluster: main
+    # Services deployed once per site: 'aardvark-qld' groups under service
+    # 'aardvark', instance 'qld'. Explicit list -- guessing from '-' would
+    # wrongly split dashboard-next, sealed-secrets, ...
+    fanout_services: [aardvark, ceilometer]
+    app_overrides:
+      # The chart pin is the version for ~all apps; opt individual apps into
+      # extra observations from helm values paths where the image tag is the
+      # meaningful version.
+      event-exporter:
+        values_version_paths: [image.tag]
+      # Multi-source app whose first source is git-HEAD manifests; the chart
+      # is the versioned artefact.
+      mirrors:
+        primary_source: 'chart:nginx'
+
+  puppet:
+    sites:
+      prod:
+        url: git@git.example.org:ops/puppet-site-prod
+        files:
+          - data/nodegroups/tier1.yaml
+          - data/nodegroups/tier2.yaml
+      test:
+        url: git@git.example.org:ops/puppet-site-test
+        files:
+          - data/nodegroups/tier1.yaml
+          - data/nodegroups/tier2.yaml
+    # The shared hieradata repo holds a handful of image_tag keys outside the
+    # site repos. Only keys listed under extra_keys are collected from it.
+    # env_files are in hiera precedence order: the first file containing a key
+    # wins; a value from a later file is flagged inherited.
+    hieradata:
+      url: git@git.example.org:ops/hieradata
+      env_files:
+        prod: [production.yaml, common.yaml]
+        test: [testing.yaml, common.yaml]
+      extra_keys:
+        profile::core::gnocchi::server::image_tag: gnocchi
+
+  puppetdb:
+    environments:
+      prod:
+        base_url: https://puppetdb.example.org:8081
+        # token / token_file / client_cert / client_key / ca_cert / verify as
+        # required by the endpoint; token also via FRISCH_PUPPETDB_TOKEN_PROD.
+      test:
+        base_url: https://puppetdb.test.example.org
+    # Which debian packages to track. Regex patterns and exact names; never
+    # the whole package inventory.
+    package_patterns:
+      - '^python3-nectar-'
+      - '^nectar-'
+    package_names:
+      - python3-langstroth
+
+# Service registry overrides. Everything else auto-defaults (argocd: file
+# stem; puppet: renovate depName or hiera key; deb: package name with
+# python3- stripped).
+services:
+  aliases: {}
+  # aliases:
+  #   langstroth:
+  #     deb: [python3-langstroth]
+  display_names: {}
+  hidden: []

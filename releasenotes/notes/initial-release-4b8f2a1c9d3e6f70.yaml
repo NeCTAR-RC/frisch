@@ -1,0 +1,23 @@
+---
+prelude: >
+    frisch gives Nectar operators visibility of deployed service versions:
+    for every service, the version running in test and prod and when each
+    environment changed to it.
+features:
+  - |
+    ArgoCD collector: walks the per-environment ArgoCD apps repos' git
+    history, recording every ``targetRevision`` change per Application with
+    exact commit timestamps, including multi-source apps and per-site
+    fan-out grouping.
+  - |
+    Puppet collector: tracks hiera ``image_tag`` pins in the puppet site
+    repos (and configured keys in the shared hieradata repo) with full git
+    history backfill.
+  - |
+    Debian package collector: snapshots installed package versions from the
+    PuppetDB package inventory per environment, recording change intervals
+    over time.
+  - |
+    Web dashboard (React SPA + FastAPI JSON API) with the version matrix,
+    per-service history, collector status, and prometheus metrics; admin
+    CLI via ``frisch`` (collect, backfill, db upgrade, show matrix).

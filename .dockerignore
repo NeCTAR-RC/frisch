@@ -1,0 +1,14 @@
+.git
+.tox
+.venv
+venv
+__pycache__
+*.egg-info
+build
+dist
+cover
+htmlcov
+node_modules
+frontend/dist
+.dev
+tests

@@ -1,0 +1,21 @@
+# Trimmed from puppet-site data/nodegroups/tier1.yaml: renovate-annotated
+# image_tag keys, an unannotated key, and an eyaml ENC blob that must not
+# break the line scanner.
+---
+classes:
+  - nectar::profile::glance::api
+
+# renovate: depName=glance packageName=registry.rc.nectar.org.au/kolla/ubuntu-source-glance-api
+nectar::profile::glance::api::image_tag: '30.2.0-7-gf1366dff0-4-2'
+
+nectar::profile::glance::api::secret: >
+  ENC[GPG,dGhpcyBpcyBub3QgYSByZWFsIGVuY3J5cHRlZCBibG9iLCBqdXN0IGZpbGxlciB0
+  ZXh0IHNvIHRoZSBsaW5lIHNjYW5uZXIgaGFzIGEgbXVsdGktbGluZSBmb2xkZWQg
+  c2NhbGFyIHRvIHNraXAgb3ZlciB3aXRob3V0IGJyZWFraW5nIGFueXRoaW5n0g==]
+
+# renovate: depName=nova packageName=registry.rc.nectar.org.au/kolla/ubuntu-source-nova-api
+nectar::profile::nova::api::image_tag: 29.4.0-26-g22f2702050-10-34
+
+nectar::profile::neutron::server::image_tag: '2024.1-eom-26-gc1dd7ae343-10-21'
+
+nectar::profile::glance::api::workers: 4

@@ -1,0 +1,163 @@
+"""Debian package collector, via the PuppetDB package inventory.
+
+Package versions are not in git (puppet manages them with ``ensure =>
+installed``), so this is a live snapshot source: each run queries the
+environment's PuppetDB for the configured package names/patterns and rolls
+the per-node rows up per package. frisch's own records are the only durable
+history, and change times are honest intervals ("changed between the
+previous run and this one"), never fake exact timestamps.
+
+Prerequisite: package inventory collection must be enabled on the agents
+(``package_inventory_enabled``); a probe marks the source unavailable --
+surfaced on the status page -- rather than silently reporting nothing.
+There is no fallback via the resources entity: a ``Package[x] { ensure =>
+installed }`` resource carries no version.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+from datetime import datetime, UTC
+
+import httpx
+
+from frisch.collectors.base import Collector, CollectResult, CursorStore
+from frisch.config import PuppetDBEnvConfig
+from frisch.errors import SourceUnavailable
+from frisch import model
+
+LOG = logging.getLogger(__name__)
+
+_NODES_SAMPLE = 5
+
+
+def _q(value: str) -> str:
+    """Quote a string for embedding in a PQL query."""
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+class PuppetDBClient:
+    def __init__(self, cfg: PuppetDBEnvConfig):
+        headers = {}
+        token = cfg.resolved_token()
+        if token:
+            headers["X-Authentication"] = token
+        cert = None
+        if cfg.client_cert:
+            cert = (
+                (cfg.client_cert, cfg.client_key)
+                if cfg.client_key
+                else cfg.client_cert
+            )
+        verify = cfg.ca_cert or cfg.verify
+        self._client = httpx.Client(
+            base_url=cfg.base_url,
+            headers=headers,
+            verify=verify,
+            cert=cert,
+            timeout=60.0,
+        )
+
+    def pql(self, query: str) -> list:
+        try:
+            resp = self._client.post("/pdb/query/v4", json={"query": query})
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPError as exc:
+            raise SourceUnavailable(f"PuppetDB query failed: {exc}") from exc
+
+    def close(self) -> None:
+        self._client.close()
+
+
+class DebCollector(Collector):
+    name = "deb"
+
+    def environments(self) -> list[str]:
+        return list(self.config.puppetdb.environments)
+
+    def _package_filter(self) -> str:
+        cfg = self.config.puppetdb
+        clauses = [
+            f"package_name ~ {_q(pattern)}" for pattern in cfg.package_patterns
+        ]
+        clauses.extend(
+            f"package_name = {_q(name)}" for name in cfg.package_names
+        )
+        return " or ".join(clauses)
+
+    def collect(self, env: str, cursors: CursorStore) -> CollectResult:
+        package_filter = self._package_filter()
+        if not package_filter:
+            raise SourceUnavailable(
+                "no package_patterns or package_names configured"
+            )
+        client = PuppetDBClient(self.config.puppetdb.environments[env])
+        try:
+            probe = client.pql("package_inventory[certname] { limit 1 }")
+            if not probe:
+                raise SourceUnavailable(
+                    "package_inventory returned no rows -- is package "
+                    "inventory collection enabled on the agents?"
+                )
+            rows = client.pql(
+                "package_inventory[certname, package_name, version] "
+                f"{{ {package_filter} }}"
+            )
+        finally:
+            client.close()
+
+        run_at = datetime.now(UTC).replace(tzinfo=None)
+        packages: dict[str, dict[str, set[str]]] = {}
+        for row in rows:
+            packages.setdefault(row["package_name"], {}).setdefault(
+                row["version"], set()
+            ).add(row["certname"])
+
+        snapshot_ref = f"snap:{run_at.isoformat()}"
+        observations = []
+        for package_name in sorted(packages):
+            by_version = packages[package_name]
+            groups = sorted(
+                (
+                    {"version": version, "node_count": len(nodes)}
+                    for version, nodes in by_version.items()
+                ),
+                key=lambda g: (-g["node_count"], g["version"]),
+            )
+            rollup = hashlib.sha1(
+                json.dumps(groups, sort_keys=True).encode()
+            ).hexdigest()[:12]
+            all_nodes = sorted(
+                node for nodes in by_version.values() for node in nodes
+            )
+            service = self.identity.resolve(
+                self.name, model.deb_default_identity(package_name)
+            )
+            observations.append(
+                model.Observation(
+                    source=self.name,
+                    env=env,
+                    source_key=f"pkg:{package_name}",
+                    service=service,
+                    version=groups[0]["version"],
+                    changed_at=run_at,
+                    precision=model.INTERVAL,
+                    ref=f"{run_at.isoformat()}:{rollup}",
+                    meta={
+                        "package": package_name,
+                        "versions": groups,
+                        "mixed": len(groups) > 1,
+                        "node_count": len(all_nodes),
+                        "nodes_sample": all_nodes[:_NODES_SAMPLE],
+                    },
+                )
+            )
+        return CollectResult(
+            observations=observations,
+            full_snapshot=True,
+            snapshot_ref=snapshot_ref,
+            stats={"rows": len(rows), "packages": len(packages)},
+        )
