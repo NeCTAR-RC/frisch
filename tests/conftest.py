@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import subprocess
 
@@ -23,6 +24,21 @@ def session(session_factory):
         yield sess
 
 
+def _clean_git_env() -> dict[str, str]:
+    """A git environment ignoring the developer's own config.
+
+    Without this the scratch repos inherit ~/.gitconfig, and a developer
+    with commit.gpgsign=true has every test commit block on a key
+    passphrase prompt. Ignoring the user/system config also keeps the
+    tests deterministic across machines.
+    """
+    env = dict(os.environ)
+    env["GIT_CONFIG_GLOBAL"] = os.devnull
+    env["GIT_CONFIG_SYSTEM"] = os.devnull
+    env["GIT_CONFIG_NOSYSTEM"] = "1"
+    return env
+
+
 class GitRepoBuilder:
     """A scratch git repo with deterministic commit dates."""
 
@@ -32,13 +48,15 @@ class GitRepoBuilder:
         self._git("init", "-q", "-b", "master")
         self._git("config", "user.name", "Test")
         self._git("config", "user.email", "test@example.org")
+        self._git("config", "commit.gpgsign", "false")
+        self._git("config", "tag.gpgsign", "false")
 
     def _git(self, *args: str, env: dict | None = None) -> str:
         proc = subprocess.run(
             ["git", "-C", str(self.path), *args],
             capture_output=True,
             text=True,
-            env=env,
+            env=env if env is not None else _clean_git_env(),
         )
         assert proc.returncode == 0, proc.stderr
         return proc.stdout
@@ -49,8 +67,6 @@ class GitRepoBuilder:
         message: str = "change",
         date: str = "2026-01-01T00:00:00 +0000",
     ) -> str:
-        import os
-
         for rel, content in files.items():
             target = self.path / rel
             if content is None:
@@ -59,7 +75,7 @@ class GitRepoBuilder:
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(content)
         self._git("add", "-A")
-        env = dict(os.environ)
+        env = _clean_git_env()
         env["GIT_AUTHOR_DATE"] = date
         env["GIT_COMMITTER_DATE"] = date
         self._git("commit", "-q", "--allow-empty", "-m", message, env=env)
@@ -72,11 +88,9 @@ class GitRepoBuilder:
         message: str = "move",
         date: str = "2026-01-01T00:00:00 +0000",
     ) -> str:
-        import os
-
         (self.path / new).parent.mkdir(parents=True, exist_ok=True)
         self._git("mv", old, new)
-        env = dict(os.environ)
+        env = _clean_git_env()
         env["GIT_AUTHOR_DATE"] = date
         env["GIT_COMMITTER_DATE"] = date
         self._git("commit", "-q", "-m", message, env=env)
