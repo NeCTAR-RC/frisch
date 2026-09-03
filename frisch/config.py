@@ -85,6 +85,7 @@ class PuppetDBEnvConfig:
     client_cert: str | None = None
     client_key: str | None = None
     verify: bool = True
+    timeout: float = 60.0
 
     def resolved_token(self) -> str | None:
         if self.token:
@@ -183,6 +184,7 @@ def _load_puppetdb(raw: dict) -> PuppetDBConfig:
             client_cert=pdb.get("client_cert"),
             client_key=pdb.get("client_key"),
             verify=bool(pdb.get("verify", True)),
+            timeout=float(pdb.get("timeout", 60.0)),
         )
         env_token = os.environ.get(
             ENV_PREFIX + "PUPPETDB_TOKEN_" + env.upper()

@@ -1,8 +1,10 @@
+import ssl
+
 import httpx
 import pytest
 import respx
 
-from frisch.collectors.debs import DebCollector
+from frisch.collectors.debs import _ssl_context, DebCollector
 from frisch.config import Config, PuppetDBConfig, PuppetDBEnvConfig
 from frisch.errors import SourceUnavailable
 from frisch.model import ServiceIdentity
@@ -105,3 +107,21 @@ def test_pql_filter_built_from_config(cursors):
     query = json.loads(route.calls[1].request.content)["query"]
     assert 'package_name ~ "^python3-nectar-"' in query
     assert 'package_name = "python3-langstroth"' in query
+
+
+def test_ssl_context_verifies_without_strict_profile_checks():
+    """Puppet CA chains commonly violate the RFC 5280 profile (e.g.
+    basicConstraints not marked critical), which Python 3.13+ rejects by
+    default; verification must stay on with only the strict checks off.
+    """
+    ctx = _ssl_context(PuppetDBEnvConfig(base_url=BASE))
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+    assert ctx.check_hostname
+    assert not ctx.verify_flags & ssl.VERIFY_X509_STRICT
+    assert ctx.verify_flags & ssl.VERIFY_X509_PARTIAL_CHAIN
+
+
+def test_ssl_context_verify_false_disables_verification():
+    ctx = _ssl_context(PuppetDBEnvConfig(base_url=BASE, verify=False))
+    assert ctx.verify_mode == ssl.CERT_NONE
+    assert not ctx.check_hostname

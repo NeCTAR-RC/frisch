@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    The PuppetDB client no longer fails TLS verification against puppet CA
+    chains that violate the strict RFC 5280 profile checks Python 3.13+
+    enables by default (for example, a CA certificate whose basicConstraints
+    extension is not marked critical). Chain and hostname verification
+    remain enforced; partial chains anchored at an intermediate CA in
+    ``ca_cert`` are trusted.
+upgrade:
+  - |
+    The PuppetDB request timeout is now configurable per environment via
+    ``collectors.puppetdb.environments.<env>.timeout`` (seconds, default
+    60, previously hard-coded).

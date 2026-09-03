@@ -52,6 +52,7 @@ collectors:
       test:
         base_url: https://puppetdb.test.example.org
         verify: false
+        timeout: 30
     package_patterns: ['^nectar-']
     package_names: [python3-langstroth]
 services:
@@ -147,6 +148,7 @@ def test_full_config_file(tmp_path):
     pdb = cfg.puppetdb.environments["test"]
     assert pdb.base_url == "https://puppetdb.test.example.org"
     assert pdb.verify is False
+    assert pdb.timeout == 30.0
     assert cfg.puppetdb.package_patterns == ["^nectar-"]
     assert cfg.puppetdb.package_names == ["python3-langstroth"]
 

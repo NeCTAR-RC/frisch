@@ -80,8 +80,9 @@ collectors:
     environments:
       prod:
         base_url: https://puppetdb.example.org:8081
-        # token / token_file / client_cert / client_key / ca_cert / verify as
-        # required by the endpoint; token also via FRISCH_PUPPETDB_TOKEN_PROD.
+        # token / token_file / client_cert / client_key / ca_cert / verify /
+        # timeout (seconds, default 60) as required by the endpoint; token
+        # also via FRISCH_PUPPETDB_TOKEN_PROD.
       test:
         base_url: https://puppetdb.test.example.org
     # Which debian packages to track. Regex patterns and exact names; never

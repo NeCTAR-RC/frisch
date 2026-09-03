@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import ssl
 from datetime import datetime, UTC
 
 import httpx
@@ -38,26 +39,38 @@ def _q(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def _ssl_context(cfg: PuppetDBEnvConfig) -> ssl.SSLContext:
+    """TLS context for PuppetDB, built by hand rather than from httpx's
+    verify/cert shorthand: puppet CA chains in the wild fail the strict
+    RFC 5280 profile checks Python 3.13+ enables by default (e.g.
+    basicConstraints not marked critical on the CA), so keep chain and
+    hostname verification but drop the profile checks. Partial chains stay
+    trusted: ca.pem may hold the signing intermediate while the server
+    sends only its leaf.
+    """
+    ctx = ssl.create_default_context(cafile=cfg.ca_cert)
+    if cfg.verify:
+        ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
+        ctx.verify_flags |= ssl.VERIFY_X509_PARTIAL_CHAIN
+    else:
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+    if cfg.client_cert:
+        ctx.load_cert_chain(cfg.client_cert, cfg.client_key)
+    return ctx
+
+
 class PuppetDBClient:
     def __init__(self, cfg: PuppetDBEnvConfig):
         headers = {}
         token = cfg.resolved_token()
         if token:
             headers["X-Authentication"] = token
-        cert = None
-        if cfg.client_cert:
-            cert = (
-                (cfg.client_cert, cfg.client_key)
-                if cfg.client_key
-                else cfg.client_cert
-            )
-        verify = cfg.ca_cert or cfg.verify
         self._client = httpx.Client(
             base_url=cfg.base_url,
             headers=headers,
-            verify=verify,
-            cert=cert,
-            timeout=60.0,
+            verify=_ssl_context(cfg),
+            timeout=cfg.timeout,
         )
 
     def pql(self, query: str) -> list:
