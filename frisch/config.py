@@ -100,6 +100,9 @@ class PuppetDBConfig:
     environments: dict[str, PuppetDBEnvConfig] = field(default_factory=dict)
     package_patterns: list[str] = field(default_factory=list)
     package_names: list[str] = field(default_factory=list)
+    # group name -> certnames; hosts not listed keep the pre-grouping
+    # behaviour of one collapsed row per package.
+    host_groups: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -193,6 +196,10 @@ def _load_puppetdb(raw: dict) -> PuppetDBConfig:
             cfg.environments[env].token = env_token
     cfg.package_patterns = [str(p) for p in raw.get("package_patterns", [])]
     cfg.package_names = [str(n) for n in raw.get("package_names", [])]
+    cfg.host_groups = {
+        str(group): [str(host) for host in hosts]
+        for group, hosts in (raw.get("host_groups") or {}).items()
+    }
     return cfg
 
 

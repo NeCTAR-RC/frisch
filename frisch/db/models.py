@@ -70,6 +70,12 @@ class Instance(Base):
     current_changed_at: Mapped[datetime | None] = mapped_column(DateTime())
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime())
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Denormalised from the latest observation, refreshed on every ingest
+    # (unlike current_version, which only changes on a version change) so
+    # e.g. the deb collector's mixed-across-nodes flag stays live. Nullable:
+    # rows from before this column existed have no backfilled value until
+    # next observed.
+    current_meta: Mapped[dict | None] = mapped_column(JSON, default=dict)
 
     service: Mapped[Service] = relationship(back_populates="instances")
     events: Mapped[list[VersionEvent]] = relationship(

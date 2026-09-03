@@ -65,6 +65,19 @@ export default function Service() {
                   {inst.version_kind === 'floating' && (
                     <span className="badge floating">floating</span>
                   )}
+                  {inst.mixed && (
+                    <span
+                      className="badge mixed"
+                      title={(inst.versions || [])
+                        .map(
+                          (v) =>
+                            `${v.version} (${v.node_count}): ${(v.nodes || []).join(', ')}`,
+                        )
+                        .join(' · ')}
+                    >
+                      mixed ({(inst.versions || []).length})
+                    </span>
+                  )}
                 </td>
                 <td title={inst.changed_at || ''}>
                   {shortDate(inst.changed_at)}

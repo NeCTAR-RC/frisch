@@ -39,6 +39,16 @@ def _q(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def _host_groups_by_certname(
+    host_groups: dict[str, list[str]],
+) -> dict[str, str]:
+    return {
+        certname: group
+        for group, certnames in host_groups.items()
+        for certname in certnames
+    }
+
+
 def _ssl_context(cfg: PuppetDBEnvConfig) -> ssl.SSLContext:
     """TLS context for PuppetDB, built by hand rather than from httpx's
     verify/cert shorthand: puppet CA chains in the wild fail the strict
@@ -123,19 +133,31 @@ class DebCollector(Collector):
             client.close()
 
         run_at = datetime.now(UTC).replace(tzinfo=None)
-        packages: dict[str, dict[str, set[str]]] = {}
+        host_group = _host_groups_by_certname(self.config.puppetdb.host_groups)
+        # (package_name, group) -> version -> certnames. group is None for
+        # hosts not covered by any configured host_groups entry -- they
+        # keep the pre-grouping behaviour of one collapsed row per package.
+        buckets: dict[tuple[str, str | None], dict[str, set[str]]] = {}
         for row in rows:
-            packages.setdefault(row["package_name"], {}).setdefault(
-                row["version"], set()
-            ).add(row["certname"])
+            key = (row["package_name"], host_group.get(row["certname"]))
+            buckets.setdefault(key, {}).setdefault(row["version"], set()).add(
+                row["certname"]
+            )
 
         snapshot_ref = f"snap:{run_at.isoformat()}"
         observations = []
-        for package_name in sorted(packages):
-            by_version = packages[package_name]
+        packages_seen = {package_name for package_name, _ in buckets}
+        for package_name, group in sorted(
+            buckets, key=lambda k: (k[0], k[1] or "")
+        ):
+            by_version = buckets[(package_name, group)]
             groups = sorted(
                 (
-                    {"version": version, "node_count": len(nodes)}
+                    {
+                        "version": version,
+                        "node_count": len(nodes),
+                        "nodes": sorted(nodes)[:_NODES_SAMPLE],
+                    }
                     for version, nodes in by_version.items()
                 ),
                 key=lambda g: (-g["node_count"], g["version"]),
@@ -149,14 +171,18 @@ class DebCollector(Collector):
             service = self.identity.resolve(
                 self.name, model.deb_default_identity(package_name)
             )
+            source_key = f"pkg:{package_name}"
+            if group is not None:
+                source_key = f"{source_key}@{group}"
             observations.append(
                 model.Observation(
                     source=self.name,
                     env=env,
-                    source_key=f"pkg:{package_name}",
+                    source_key=source_key,
                     service=service,
                     version=groups[0]["version"],
                     changed_at=run_at,
+                    instance=group,
                     precision=model.INTERVAL,
                     ref=f"{run_at.isoformat()}:{rollup}",
                     meta={
@@ -164,7 +190,6 @@ class DebCollector(Collector):
                         "versions": groups,
                         "mixed": len(groups) > 1,
                         "node_count": len(all_nodes),
-                        "nodes_sample": all_nodes[:_NODES_SAMPLE],
                     },
                 )
             )
@@ -172,5 +197,5 @@ class DebCollector(Collector):
             observations=observations,
             full_snapshot=True,
             snapshot_ref=snapshot_ref,
-            stats={"rows": len(rows), "packages": len(packages)},
+            stats={"rows": len(rows), "packages": len(packages_seen)},
         )

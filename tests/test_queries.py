@@ -221,6 +221,48 @@ def test_service_detail_and_history(session):
     assert queries.service_detail(session, "nope") is None
 
 
+def test_service_detail_surfaces_mixed_instance(session):
+    ingest(
+        session,
+        "deb",
+        "prod",
+        [
+            model.Observation(
+                source="deb",
+                env="prod",
+                source_key="pkg:mariadb-server@galera-db",
+                service="mariadb-server",
+                version="10.6.18",
+                changed_at=T1,
+                ref="r1",
+                instance="galera-db",
+                precision=model.INTERVAL,
+                meta={
+                    "mixed": True,
+                    "versions": [
+                        {
+                            "version": "10.6.18",
+                            "node_count": 2,
+                            "nodes": ["db1", "db2"],
+                        },
+                        {
+                            "version": "10.6.17",
+                            "node_count": 1,
+                            "nodes": ["db3"],
+                        },
+                    ],
+                },
+            )
+        ],
+    )
+    session.commit()
+    detail = queries.service_detail(session, "mariadb-server")
+    (inst,) = detail["instances"]
+    assert inst["instance"] == "galera-db"
+    assert inst["mixed"] is True
+    assert inst["versions"][0]["version"] == "10.6.18"
+
+
 def test_status(session, session_factory):
     from frisch.db.models import CollectorRun
 

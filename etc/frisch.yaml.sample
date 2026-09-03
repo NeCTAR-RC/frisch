@@ -92,6 +92,13 @@ collectors:
       - '^nectar-'
     package_names:
       - python3-langstroth
+    # Certnames that should be tracked as one instance rather than rolled
+    # into the default collapsed-by-package row -- e.g. a galera cluster
+    # that should always agree, kept distinct from an unrelated standalone
+    # host running the same package. Hosts not listed here keep today's
+    # behaviour: one row per package, majority version, mixed flag in meta.
+    host_groups:
+      galera-db: [db1.example.org, db2.example.org, db3.example.org]
 
 # Service registry overrides. Everything else auto-defaults (argocd: file
 # stem; puppet: renovate depName or hiera key; deb: package name with

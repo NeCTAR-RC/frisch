@@ -146,6 +146,7 @@ def matrix(
 
 
 def _instance_dict(inst: Instance) -> dict:
+    meta = inst.current_meta or {}
     return {
         "id": inst.id,
         "source": inst.source,
@@ -158,6 +159,8 @@ def _instance_dict(inst: Instance) -> dict:
         "changed_at": _iso(inst.current_changed_at),
         "last_seen_at": _iso(inst.last_seen_at),
         "active": inst.active,
+        "mixed": bool(meta.get("mixed")),
+        "versions": meta.get("versions") if meta.get("mixed") else None,
     }
 
 

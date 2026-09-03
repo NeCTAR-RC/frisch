@@ -70,6 +70,54 @@ def test_same_version_no_event(session):
     assert inst.last_seen_at == T2
 
 
+def test_current_meta_refreshes_without_version_change(session):
+    ingest(
+        session,
+        "deb",
+        "prod",
+        [
+            obs(
+                "1.0",
+                "r1",
+                T1,
+                source="deb",
+                env="prod",
+                source_key="pkg:mariadb-server",
+                service="mariadb-server",
+                meta={"mixed": True, "versions": ["1.0", "0.9"]},
+            )
+        ],
+    )
+    session.commit()
+    assert instance(session).current_meta["mixed"] is True
+
+    # Same version, but the node breakdown behind it has changed: the
+    # denormalised current_meta must still refresh even though nothing
+    # about current_version/current_changed_at moves.
+    ingest(
+        session,
+        "deb",
+        "prod",
+        [
+            obs(
+                "1.0",
+                "r2",
+                T2,
+                source="deb",
+                env="prod",
+                source_key="pkg:mariadb-server",
+                service="mariadb-server",
+                meta={"mixed": False, "versions": []},
+            )
+        ],
+    )
+    session.commit()
+    inst = instance(session)
+    assert inst.current_meta["mixed"] is False
+    assert inst.current_changed_at == T1
+    assert inst.last_seen_at == T2
+
+
 def test_replay_is_idempotent(session):
     batch = [obs("1.0.0", "sha1", T1), obs("1.1.0", "sha2", T2)]
     ingest(session, "argocd", "test", batch)

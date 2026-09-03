@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The deb/PuppetDB collector can now be configured with
+    ``collectors.puppetdb.host_groups`` to track a named group of hosts
+    (e.g. a galera cluster) as its own instance, distinct from other hosts
+    running the same package. Hosts not covered by any configured group
+    keep the previous collapsed-by-package behaviour. When hosts within an
+    instance disagree on version, the mismatch (with the affected
+    hostnames) now stays visible in current state via a "mixed" badge on
+    the service page, rather than only appearing in history at the moment
+    the majority version last changed.

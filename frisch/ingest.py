@@ -140,6 +140,7 @@ class Ingester:
             inst.service_id = svc.id
         if obs.instance is not None and inst.instance != obs.instance:
             inst.instance = obs.instance
+        inst.current_meta = obs.meta
 
         if obs.version is None:  # tombstone: removed from the source
             if inst.active:
