@@ -9,7 +9,7 @@
 # uncomment the volumes below and set the repo urls to /repos/<name>.
 services:
   db:
-    image: mariadb:10.11
+    image: mariadb:13.0
     environment:
       MARIADB_DATABASE: frisch
       MARIADB_USER: frisch
