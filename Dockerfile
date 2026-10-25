@@ -11,7 +11,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- Stage 2: python runtime ------------------------------------------------
-FROM python:3.14-slim AS runtime
+FROM python:3.15-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     FRISCH_WEB_STATIC=/app/web-static \
